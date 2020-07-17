@@ -896,8 +896,12 @@ impl HttpConn for Http3Conn {
                     }
                 },
 
-                Ok((_stream_id, quiche::h3::Event::GoAway(id))) => {
-                    info!("{} got GOAWAY with ID {} ", conn.trace_id(), id);
+                Ok((goaway_id, quiche::h3::Event::GoAway)) => {
+                    info!(
+                        "{} got GOAWAY with ID {} ",
+                        conn.trace_id(),
+                        goaway_id
+                    );
                 },
 
                 Err(quiche::h3::Error::Done) => {
@@ -934,14 +938,15 @@ impl HttpConn for Http3Conn {
         loop {
             match self.h3_conn.poll(conn) {
                 Ok((stream_id, quiche::h3::Event::Headers { list, .. })) => {
-                    error!(
+                    info!(
                         "{} got request {:?} on stream id {}",
                         conn.trace_id(),
                         &list,
                         stream_id
                     );
 
-                    self.largest_processed_request = stream_id;
+                    self.largest_processed_request =
+                        std::cmp::max(self.largest_processed_request, stream_id);
 
                     // We decide the response based on headers alone, so
                     // stop reading the request stream so that any body
@@ -1020,8 +1025,12 @@ impl HttpConn for Http3Conn {
 
                 Ok((_stream_id, quiche::h3::Event::Finished)) => (),
 
-                Ok((_stream_id, quiche::h3::Event::GoAway(id))) => {
-                    trace!("{} got GOAWAY with ID {} ", conn.trace_id(), id);
+                Ok((goaway_id, quiche::h3::Event::GoAway)) => {
+                    trace!(
+                        "{} got GOAWAY with ID {} ",
+                        conn.trace_id(),
+                        goaway_id
+                    );
                     self.h3_conn
                         .send_goaway(conn, self.largest_processed_request)?;
                 },

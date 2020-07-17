@@ -355,7 +355,7 @@ fn main() {
 
                         Ok((_stream_id, quiche::h3::Event::Finished)) => (),
 
-                        Ok((_stream_id, quiche::h3::Event::GoAway(_id))) => (),
+                        Ok((_goaway_id, quiche::h3::Event::GoAway)) => (),
 
                         Err(quiche::h3::Error::Done) => {
                             break;
